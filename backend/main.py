@@ -23,6 +23,29 @@ def get_db():
         charset="utf8"
     )
 
+def get_current_user(authorization: str):
+    if not authorization:
+        raise HTTPException(401, "未提供token")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(401, "格式错误")
+    token = authorization.replace("Bearer ", "")
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT user_id, expires_at FROM tokens WHERE token=%s",
+            (token,)
+        )
+        record = cur.fetchone()
+        if not record:
+            raise HTTPException(401, "token无效")
+        if record[1] < datetime.now():
+            raise HTTPException(401, "token已过期")
+        return record[0]
+    finally:
+        cur.close()
+        conn.close()
+
 @app.post("/register")
 def register(username: str, password: str):
     if not username:
@@ -71,32 +94,59 @@ def login(username:str,password:str):
 
 @app.post("/user/info")
 def get_user_info(authorization: str = Header(None)):
-    if not authorization:
-        raise HTTPException(400, "未提供token")
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(400, "格式错误")
-    token = authorization.replace("Bearer ", "")
+    user_id = get_current_user(authorization)
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute(
-            "SELECT user_id, expires_at FROM tokens WHERE token=%s",
-            (token,)
-        )
-        record = cur.fetchone()
-        if not record:
-            raise HTTPException(400, "token无效")
-        if record[1] < datetime.now():
-            raise HTTPException(400, "token已过期")
-        user_id = record[0]
         cur.execute(
             "SELECT id, username FROM users WHERE id=%s",
             (user_id,)
         )
         user = cur.fetchone()
-        if not user:
-            raise HTTPException(400, "用户不存在")
         return {"user_id": user[0], "username": user[1]}
+    finally:
+        cur.close()
+        conn.close()
+
+@app.post("/products")
+def create_product(
+    name: str, price: float, stock: int,
+    authorization: str = Header(None)   
+):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO products (name, price, stock, created_by) VALUES (%s, %s, %s, %s)",
+            (name, price, stock, user_id)
+        )
+        conn.commit()
+        return {"message": "创建商品成功", "product_name": name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="创建商品失败")
+    finally:
+        cur.close()
+        conn.close()    
+
+@app.get("/products")
+def get_products():
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT id, name, price, stock FROM products"
+        )
+        rows = cur.fetchall()
+        products = []
+        for row in rows:
+            products.append({
+                "id": row[0],
+                "name": row[1],
+                "price": row[2],
+                "stock": row[3]
+            })
+        return {"products": products}
     finally:
         cur.close()
         conn.close()
