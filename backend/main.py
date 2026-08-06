@@ -122,7 +122,7 @@ def create_product(
             (name, price, stock, user_id)
         )
         conn.commit()
-        return {"message": "创建商品成功", "product_name": name}
+        return {"message": "创建商品成功", "product_name": name, "product_id": cur.lastrowid}
     except Exception as e:
         raise HTTPException(status_code=500, detail="创建商品失败")
     finally:
@@ -150,3 +150,35 @@ def get_products():
     finally:
         cur.close()
         conn.close()
+
+@app.post("/cart")
+def add_to_cart(
+    product_id: int, quantity: int = 1,
+    authorization: str = Header(None)
+):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+                "SELECT id FROM cart WHERE user_id=%s AND product_id=%s",
+                (user_id, product_id)
+            )
+        record = cur.fetchone()
+        if record:
+            cur.execute(
+                "UPDATE cart SET quantity = quantity + %s WHERE user_id = %s AND product_id = %s",
+                (quantity, user_id, product_id)
+            )
+        else:
+            cur.execute(
+                "INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)",
+                (user_id, product_id, quantity)
+            )
+        conn.commit()
+        return {"message": "添加到购物车成功"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="添加到购物车失败")
+    finally:
+        cur.close()
+        conn.close()    
