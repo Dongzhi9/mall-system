@@ -211,13 +211,42 @@ def create_order(
             (user_id, product_id, quantity, total_price)
         )
         conn.commit()
-        return {"message": "订单创建成功", "total_price": total_price}
+        return {"message": "订单创建成功", "total_price": total_price, "order_id": cur.lastrowid}
     except HTTPException:
-        raise              # HTTPException（400等）原样抛出，不改成500
+        raise             
     except Exception as e:
         print(f"下单失败: {e}")
         raise HTTPException(status_code=500, detail="下单失败")
 
+    finally:
+        cur.close()
+        conn.close()
+
+@app.post("/pay")
+def pay(order_id: int, authorization: str = Header(None)):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT status FROM orders WHERE id=%s AND user_id=%s",
+            (order_id, user_id)
+        )
+        order = cur.fetchone()
+        if not order:
+            raise HTTPException(status_code=400, detail="订单不存在")
+        if order[0] != "pending":
+            raise HTTPException(status_code=400, detail="订单状态不正确")
+        cur.execute(
+            "UPDATE orders SET status='paid' WHERE id=%s",
+            (order_id,)
+        )
+        conn.commit()
+        return {"message": "支付成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="支付失败")
     finally:
         cur.close()
         conn.close()
