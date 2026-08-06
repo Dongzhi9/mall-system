@@ -182,3 +182,42 @@ def add_to_cart(
     finally:
         cur.close()
         conn.close()    
+
+@app.post("/orders")
+def create_order(
+    product_id: int, quantity: int , 
+    authorization: str = Header(None)
+):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT PRICE,stock FROM products WHERE id=%s",
+            (product_id,)
+        )
+        product = cur.fetchone()
+        if not product:
+            raise HTTPException(status_code=400, detail="商品不存在")   
+        if product[1] < quantity:
+            raise HTTPException(status_code=400, detail="库存不足")
+        cur.execute(
+            "UPDATE products SET stock = stock - %s WHERE id = %s",
+            (quantity, product_id)
+        )
+        total_price = product[0] * quantity
+        cur.execute(
+            "INSERT INTO orders (user_id, product_id, quantity, total_price) VALUES (%s, %s, %s, %s)",
+            (user_id, product_id, quantity, total_price)
+        )
+        conn.commit()
+        return {"message": "订单创建成功", "total_price": total_price}
+    except HTTPException:
+        raise              # HTTPException（400等）原样抛出，不改成500
+    except Exception as e:
+        print(f"下单失败: {e}")
+        raise HTTPException(status_code=500, detail="下单失败")
+
+    finally:
+        cur.close()
+        conn.close()
