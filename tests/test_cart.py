@@ -57,11 +57,14 @@ def test_add_to_cart_merge_quantity():
     )
     assert add_response2.status_code == 200
     conn = pymysql.connect(
-        host="localhost",
+        host="127.0.0.1",
+        port=3306,
         user="root",
         password="123456",
-        database="mall"
+        database="mall",
+        charset="utf8"
     )
+
     cur = conn.cursor()
     cur.execute(
         "SELECT quantity FROM cart WHERE product_id=%s",

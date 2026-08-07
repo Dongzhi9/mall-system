@@ -250,3 +250,37 @@ def pay(order_id: int, authorization: str = Header(None)):
     finally:
         cur.close()
         conn.close()
+
+@app.post("/refund")
+def refund(order_id: int, authorization: str = Header(None)):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT status,quantity,product_id FROM orders WHERE id=%s AND user_id=%s",
+            (order_id, user_id)
+        )
+        order = cur.fetchone()
+        if not order:
+            raise HTTPException(status_code=400, detail="订单不存在")
+        if order[0] != "paid":
+            raise HTTPException(status_code=400, detail="订单状态不正确")
+        cur.execute(
+            "UPDATE orders SET status = 'refunded' WHERE id = %s AND user_id=%s",
+            (order_id, user_id)
+        )
+        cur.execute(
+            "UPDATE products SET stock = stock + %s WHERE id = %s",
+            (order[1], order[2])
+        )
+        conn.commit()
+        return{"message": "退款成功"}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise HTTPException(500, "退款失败")
+    finally:
+        cur.close()
+        conn.close()
