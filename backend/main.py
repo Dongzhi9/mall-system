@@ -199,12 +199,12 @@ def create_order(
         product = cur.fetchone()
         if not product:
             raise HTTPException(status_code=400, detail="商品不存在")   
-        if product[1] < quantity:
-            raise HTTPException(status_code=400, detail="库存不足")
         cur.execute(
-            "UPDATE products SET stock = stock - %s WHERE id = %s",
-            (quantity, product_id)
+            "UPDATE products SET stock = stock - %s WHERE id = %s AND stock >= %s",
+            (quantity, product_id, quantity)
         )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=400, detail="库存不足")
         total_price = product[0] * quantity
         cur.execute(
             "INSERT INTO orders (user_id, product_id, quantity, total_price) VALUES (%s, %s, %s, %s)",
@@ -284,3 +284,58 @@ def refund(order_id: int, authorization: str = Header(None)):
     finally:
         cur.close()
         conn.close()
+
+@app.post("/complete")
+def complete(order_id: int, authorization: str = Header(None)):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT status,quantity,product_id FROM orders WHERE id=%s AND user_id=%s",
+            (order_id, user_id)
+        )
+        order = cur.fetchone()
+        if not order:
+            raise HTTPException(status_code=400, detail="订单不存在")
+        if order[0] != "paid":
+            raise HTTPException(status_code=400, detail="订单状态不正确")
+        cur.execute(
+            "UPDATE orders SET status = 'complete' WHERE id = %s AND user_id=%s",
+            (order_id, user_id)
+        )
+        conn.commit()
+        return{"message": "订单完成"}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(500,"完成失败")
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/orders")
+def get_orders(authorization: str = Header(None)):
+    user_id = get_current_user(authorization)
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT id, product_id, quantity, total_price, status FROM orders WHERE user_id=%s",
+            (user_id,)
+        )
+        rows = cur.fetchall()
+        orders = []
+        for row in rows:
+            orders.append({
+                "id": row[0],
+                "product_id": row[1],
+                "quantity": row[2],
+                "total_price": row[3],
+                "status": row[4]
+            })
+        return {"orders": orders}
+    finally:
+        cur.close()
+        conn.close()
+
