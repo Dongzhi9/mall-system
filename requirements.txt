@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pymysql
+requests
+pytest
+allure-pytest
+pytest-html
+pytest-metadata
