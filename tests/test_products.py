@@ -2,13 +2,7 @@ import requests
 
 BASE_URL = "http://127.0.0.1:8000"
 
-def test_create_product_success():
-    response = requests.post(
-        f"{BASE_URL}/login",
-        params={"username": "test01", "password": "123456"}
-    )
-    assert response.status_code == 200
-    token = response.json()["token"]
+def test_create_product_success(token):
     create_response = requests.post(
         f"{BASE_URL}/products",
         headers={"Authorization": f"Bearer {token}"},

@@ -5,13 +5,7 @@ import threading
 
 BASE_URL = "http://127.0.0.1:8000"
 
-def test_oversell():
-    response = requests.post(
-        f"{BASE_URL}/login",
-        params={"username": "test01", "password": "123456"}
-    )
-    assert response.status_code == 200
-    token = response.json()["token"]
+def test_oversell(token):
     create_response = requests.post(
         f"{BASE_URL}/products",
         headers={"Authorization": f"Bearer {token}"},

@@ -4,13 +4,7 @@ import pymysql
 
 BASE_URL = "http://127.0.0.1:8000"
 
-def test_create_order_success():
-    response = requests.post(
-        f"{BASE_URL}/login",
-        params={"username": "test01", "password": "123456"}
-    )
-    assert response.status_code == 200
-    token = response.json()["token"]
+def test_create_order_success(token):
     create_response = requests.post(
         f"{BASE_URL}/products",
         headers={"Authorization": f"Bearer {token}"},
@@ -42,13 +36,7 @@ def test_create_order_success():
     cur.close()
     conn.close()
 
-def test_create_order_not_enough_stock():
-    response = requests.post(
-        f"{BASE_URL}/login",
-        params={"username": "test01", "password": "123456"}
-    )
-    assert response.status_code == 200
-    token = response.json()["token"]
+def test_create_order_not_enough_stock(token):
     create_response = requests.post(
         f"{BASE_URL}/products",
         headers={"Authorization": f"Bearer {token}"},
@@ -87,13 +75,7 @@ def test_create_order_without_token():
     )
     assert order_response.status_code == 401
 
-def test_create_order_product_not_found ():
-    response = requests.post(
-        f"{BASE_URL}/login",
-        params={"username": "test01", "password": "123456"}
-    )
-    assert response.status_code == 200
-    token = response.json()["token"]
+def test_create_order_product_not_found (token):
     order_response = requests.post(
         f"{BASE_URL}/orders",
         headers={"Authorization": f"Bearer {token}"},
