@@ -3,25 +3,30 @@ import time
 
 BASE_URL = "http://127.0.0.1:8000"
 
-username = f"pytest_02{int(time.time()*100)}"
-
 def test_register_success():
     """注册新用户，应该成功"""
     resp = requests.post(
         f"{BASE_URL}/register", 
-        params={"username": username, "password": "123"}
+        params={"username": f"pytest_02{int(time.time()*100)}", "password": "123"}
     )
     assert resp.status_code == 200
     assert resp.json()["message"] == "注册成功"
 
 def test_register_duplicate():
     """重复注册同一用户名，应该被拦截返回400"""
-    resp = requests.post(
-        f"{BASE_URL}/register", 
+    username = f"pytest_02{int(time.time()*100)}"
+
+    resp1 = requests.post(
+        f"{BASE_URL}/register",
         params={"username": username, "password": "123"}
     )
-    assert resp.status_code == 400
+    assert resp1.status_code == 200
 
+    resp2 = requests.post(
+        f"{BASE_URL}/register",
+        params={"username": username, "password": "123"}
+    )
+    assert resp2.status_code == 400  
 def test_register_empty_username():
     """用户名空，应该返回422（参数校验失败）"""
     resp = requests.post(

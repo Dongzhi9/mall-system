@@ -1,5 +1,6 @@
 import pytest
 import requests
+import pymysql
 import time
 
 BASE_URL = "http://127.0.0.1:8000"
@@ -46,3 +47,31 @@ def paid_order_id(token, order_id):
     )
     assert pay_response.status_code == 200
     return order_id
+
+def get_db():
+    conn = pymysql.connect(
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="123456",
+        database="mall",
+        charset="utf8"
+    )
+    return conn
+
+@pytest.fixture(autouse=True)
+def clean_test_data():
+    yield
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        # 子表优先删除
+        cur.execute("DELETE FROM orders;")
+        cur.execute("DELETE FROM cart;")
+        cur.execute("DELETE FROM tokens;")
+        cur.execute("DELETE FROM products;")
+        cur.execute("DELETE FROM users WHERE username NOT IN ('test01','test02');")
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
