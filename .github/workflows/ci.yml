@@ -19,11 +19,6 @@ jobs:
           MYSQL_DATABASE: mall
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-inter=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - name: Checkout code
@@ -41,7 +36,15 @@ jobs:
       # 初始化数据库，修正schema.sql路径
       - name: Init database schema
         run: |
+          for i in {1..30}; do
+            if mysql -h127.0.0.1 -uroot -p123456 -e "SELECT 1" mall; then
+              break
+            fi
+            echo "waiting for mysql... ($i)"
+            sleep 2
+          done
           mysql -h127.0.0.1 -uroot -p123456 mall < backend/schema.sql
+
 
       - name: Install dependencies
         run: |
