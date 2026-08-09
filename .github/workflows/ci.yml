@@ -1,0 +1,72 @@
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test_job:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: mall
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-inter=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 修复1：安装mysql客户端，解决mysql命令找不到
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
+      # 初始化数据库，修正schema.sql路径
+      - name: Init database schema
+        run: |
+          mysql -h127.0.0.1 -uroot -p123456 mall < backend/schema.sql
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 修复2：指定工作目录backend启动uvicorn
+      - name: Start FastAPI backend
+        working-directory: backend
+        run: |
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+
+      # 修复3：删掉自定义alluredir，沿用pytest.ini配置 reports/result
+      - name: Run pytest test cases
+        run: pytest
+
+      # 路径统一修改为 reports/result
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: reports/result
+          allure_report: allure-report
+
+      - name: Upload Allure report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-allure-report
+          path: allure-report
