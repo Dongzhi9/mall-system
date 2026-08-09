@@ -1,7 +1,6 @@
 import time
 import requests
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_login_success():
     username = f"test{int(time.time()*100)}"

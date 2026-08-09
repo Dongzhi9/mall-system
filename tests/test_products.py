@@ -1,6 +1,5 @@
 import requests
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_create_product_success(token):
     create_response = requests.post(

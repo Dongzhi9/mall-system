@@ -1,7 +1,5 @@
 import requests
-import time
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_pay_success(token, order_id):
     pay_response = requests.post(

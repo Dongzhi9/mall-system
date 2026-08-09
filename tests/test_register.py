@@ -1,7 +1,6 @@
 import requests
 import time
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_register_success():
     """注册新用户，应该成功"""

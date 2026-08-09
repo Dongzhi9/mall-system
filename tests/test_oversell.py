@@ -1,9 +1,7 @@
 import requests
 import time
-import pymysql
 import threading          
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL, get_db
 
 def test_oversell(token):
     create_response = requests.post(
@@ -40,14 +38,7 @@ def test_oversell(token):
         if code == 200:
             success = success + 1
     assert success == 1
-    conn = pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="123456",
-        database="mall",
-        charset="utf8"
-    )
+    conn = get_db()
     cur = conn.cursor()
     cur.execute(
         "SELECT stock FROM products WHERE id = %s", 

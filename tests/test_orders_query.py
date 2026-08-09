@@ -1,6 +1,5 @@
 import requests
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_get_orders_success(token, order_id):
     get_order_response = requests.get(

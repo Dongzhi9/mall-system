@@ -1,8 +1,5 @@
-import time
 import requests
-import pymysql
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL, get_db
 
 def test_complete_success(token, paid_order_id):
     complete_response = requests.post(
@@ -11,14 +8,7 @@ def test_complete_success(token, paid_order_id):
         params={"order_id": paid_order_id}
     )
     assert complete_response.status_code == 200
-    conn = pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="123456",
-        database="mall",
-        charset="utf8"
-    )
+    conn = get_db()
     cur = conn.cursor()
     cur.execute(
         "SELECT status FROM orders WHERE id = %s", 

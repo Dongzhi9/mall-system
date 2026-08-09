@@ -1,8 +1,6 @@
 import requests
 import time
-import pymysql
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL, get_db
 
 def test_create_order_success(token):
     create_response = requests.post(
@@ -18,14 +16,7 @@ def test_create_order_success(token):
         params={"product_id": product_id, "quantity": 1}
     )
     assert order_response.status_code == 200
-    conn = pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="123456",
-        database="mall",
-        charset="utf8"
-    )
+    conn = get_db()
     cur = conn.cursor()
     cur.execute(
         "SELECT stock FROM products WHERE id = %s", 
@@ -50,14 +41,7 @@ def test_create_order_not_enough_stock(token):
         params={"product_id": product_id, "quantity": 99}
     )
     assert order_response.status_code == 400
-    conn = pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="123456",
-        database="mall",
-        charset="utf8"
-    )
+    conn = get_db()
     cur = conn.cursor()
     cur.execute(
         "SELECT stock FROM products WHERE id = %s", 

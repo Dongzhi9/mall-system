@@ -1,6 +1,5 @@
 import requests
-
-BASE_URL = "http://127.0.0.1:8000"
+from conftest import BASE_URL
 
 def test_user_info_without_token():
     response = requests.post(f"{BASE_URL}/user/info")
