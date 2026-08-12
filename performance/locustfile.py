@@ -1,4 +1,4 @@
-from locust import HttpUser, task, between
+from locust import HttpUser, task
 
 class MallUser(HttpUser):
     host = "http://127.0.0.1:8000"
