@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pymysql
+DBUtils
 requests
 pytest
 allure-pytest

@@ -2,6 +2,19 @@ import pymysql
 import secrets
 from fastapi import FastAPI, HTTPException, Header
 from datetime import datetime, timedelta
+from dbutils.pooled_db import PooledDB
+
+pool = PooledDB(
+    creator=pymysql,
+    maxconnections=40,
+    blocking=True,      
+    host="127.0.0.1",
+    port=3306,
+    user="root",
+    password="123456",
+    database="mall",
+    charset="utf8",
+)
 
 app = FastAPI()
 
@@ -14,14 +27,7 @@ def get_user(user_id: int):
     return {"user_id": user_id, "name": f"用户{user_id}"}
 
 def get_db():
-    return pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="123456",
-        database="mall",
-        charset="utf8"
-    )
+    return pool.connection()
 
 def get_current_user(authorization: str):
     if not authorization:
