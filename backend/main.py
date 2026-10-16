@@ -221,6 +221,7 @@ def create_order(
     except HTTPException:
         raise             
     except Exception as e:
+        conn.rollback()
         print(f"下单失败: {e}")
         raise HTTPException(status_code=500, detail="下单失败")
 
@@ -235,23 +236,18 @@ def pay(order_id: int, authorization: str = Header(None)):
     cur = conn.cursor()
     try:
         cur.execute(
-            "SELECT status FROM orders WHERE id=%s AND user_id=%s",
+            "UPDATE orders SET status = 'paid' WHERE id = %s AND user_id = %s AND status = 'pending'",
             (order_id, user_id)
         )
-        order = cur.fetchone()
-        if not order:
-            raise HTTPException(status_code=400, detail="订单不存在")
-        if order[0] != "pending":
-            raise HTTPException(status_code=400, detail="订单状态不正确")
-        cur.execute(
-            "UPDATE orders SET status='paid' WHERE id=%s",
-            (order_id,)
-        )
+        if cur.rowcount == 0:
+            raise HTTPException(400, "订单不存在或状态不正确")
         conn.commit()
         return {"message": "支付成功"}
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()
+        print(f"支付失败: {e}")
         raise HTTPException(status_code=500, detail="支付失败")
     finally:
         cur.close()
@@ -270,22 +266,24 @@ def refund(order_id: int, authorization: str = Header(None)):
         order = cur.fetchone()
         if not order:
             raise HTTPException(status_code=400, detail="订单不存在")
-        if order[0] != "paid":
-            raise HTTPException(status_code=400, detail="订单状态不正确")
+        quantity, product_id = order[1], order[2]
         cur.execute(
-            "UPDATE orders SET status = 'refunded' WHERE id = %s AND user_id=%s",
+            "UPDATE orders SET status = 'refunded' WHERE id = %s AND user_id=%s AND status = 'paid'",
             (order_id, user_id)
         )
+        if cur.rowcount == 0:
+            raise HTTPException(400, "订单状态不正确")
         cur.execute(
             "UPDATE products SET stock = stock + %s WHERE id = %s",
-            (order[1], order[2])
+            (quantity, product_id)
         )
         conn.commit()
         return{"message": "退款成功"}
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         conn.rollback()
+        print(f"退款失败：{e}")
         raise HTTPException(500, "退款失败")
     finally:
         cur.close()
@@ -298,24 +296,19 @@ def complete(order_id: int, authorization: str = Header(None)):
     cur = conn.cursor()
     try:
         cur.execute(
-            "SELECT status,quantity,product_id FROM orders WHERE id=%s AND user_id=%s",
+            "UPDATE orders SET status = 'complete' WHERE id = %s AND user_id=%s AND status = 'paid'",
             (order_id, user_id)
         )
-        order = cur.fetchone()
-        if not order:
-            raise HTTPException(status_code=400, detail="订单不存在")
-        if order[0] != "paid":
-            raise HTTPException(status_code=400, detail="订单状态不正确")
-        cur.execute(
-            "UPDATE orders SET status = 'complete' WHERE id = %s AND user_id=%s",
-            (order_id, user_id)
-        )
+        if cur.rowcount == 0:
+            raise HTTPException(400, "订单不存在或状态不正确")
         conn.commit()
         return{"message": "订单完成"}
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(500,"完成失败")
+    except Exception as e:
+        conn.rollback()
+        print(f"完成失败: {e}")
+        raise HTTPException(500, "完成失败")
     finally:
         cur.close()
         conn.close()
