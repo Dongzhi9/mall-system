@@ -63,7 +63,7 @@ jobs:
 
       # 路径统一修改为 reports/result
       - name: Generate Allure report
-        uses: simple-elf/allure-report-action@master
+        uses: simple-elf/allure-report-action@v1.15
         with:
           allure_results: reports/result
           allure_report: allure-report
