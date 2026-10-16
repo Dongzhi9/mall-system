@@ -61,12 +61,18 @@ jobs:
       - name: Run pytest test cases
         run: pytest
 
-      # 路径统一修改为 reports/result
-      - name: Generate Allure report
-        uses: simple-elf/allure-report-action@v1.15
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
-          allure_results: reports/result
-          allure_report: allure-report
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
+
+      - name: Generate Allure report
+        run: allure generate reports/result -o allure-report --clean
+
 
       - name: Upload Allure report artifact
         uses: actions/upload-artifact@v4
