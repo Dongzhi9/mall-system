@@ -27,7 +27,7 @@ def test_register_duplicate():
     )
     assert resp2.status_code == 400  
 def test_register_empty_username():
-    """用户名空，应该返回422（参数校验失败）"""
+    """用户名空，返回400（参数校验失败）"""
     resp = requests.post(
         f"{BASE_URL}/register", 
         params={"username": "", "password": "123"}

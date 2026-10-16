@@ -167,6 +167,13 @@ def add_to_cart(
     cur = conn.cursor()
     try:
         cur.execute(
+            "SELECT id FROM products WHERE id=%s",
+            (product_id,)
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=400, detail="商品不存在")
+
+        cur.execute(
                 "SELECT id FROM cart WHERE user_id=%s AND product_id=%s",
                 (user_id, product_id)
             )
@@ -183,11 +190,15 @@ def add_to_cart(
             )
         conn.commit()
         return {"message": "添加到购物车成功"}
+    except HTTPException:              
+        raise
     except Exception as e:
+        conn.rollback()                
+        print(f"加购物车失败: {e}")
         raise HTTPException(status_code=500, detail="添加到购物车失败")
     finally:
         cur.close()
-        conn.close()    
+        conn.close()
 
 @app.post("/orders")
 def create_order(

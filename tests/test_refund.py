@@ -35,8 +35,8 @@ def test_refund_cross_user(paid_order_id):
         f"{BASE_URL}/login",
         params={"username": "test02", "password": "123456"}
     )
-    token_b = response_b.json()["token"]
     assert response_b.status_code == 200
+    token_b = response_b.json()["token"]
     refund_response = requests.post(
         f"{BASE_URL}/refund",
         headers={"Authorization": f"Bearer {token_b}"},

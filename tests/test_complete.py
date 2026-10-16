@@ -42,9 +42,9 @@ def test_complete_already_completed(token, paid_order_id):
     assert complete_response2.status_code == 400
 
 def test_complete_without_token():
-    refund_response = requests.post(
+    complete_response = requests.post(
         f"{BASE_URL}/complete",
         headers={"Authorization": f"Bearer "},
         params={"order_id": 1}
     )
-    assert refund_response.status_code == 401
+    assert complete_response.status_code == 401
